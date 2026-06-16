@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Provider {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  baseUrl        String?
+  specUrl        String?
+  authType       String   @default("none")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
