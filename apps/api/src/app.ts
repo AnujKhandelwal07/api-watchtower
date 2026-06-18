@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
-import providerRoutes from "./modules/providers/provider.routes";
+import providerRoutes from "./modules/providers/provider.routes.js";
+import snapshotRoutes from "./modules/snapshots/snapshot.routes.js";
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/providers", providerRoutes);
+app.use("/providers/:providerId/snapshots", snapshotRoutes);
 
 export default app;

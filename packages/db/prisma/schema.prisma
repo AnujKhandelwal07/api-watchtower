@@ -8,13 +8,29 @@ datasource db {
 }
 
 model Provider {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  baseUrl   String?
+  specUrl   String?
+  authType  String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  snapshots Snapshot[]
+}
+
+model Snapshot {
   id             String   @id @default(cuid())
-  name           String
-  slug           String   @unique
-  baseUrl        String?
-  specUrl        String?
-  authType       String   @default("none")
-  isActive       Boolean  @default(true)
+  providerId     String
+  provider       Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  sourceUrl      String
+  status         String
+  httpStatus     Int?
+  contentType    String?
+  rawPayload     Json?
+  errorMessage   String?
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+
+  @@index([providerId, createdAt])
 }
