@@ -14,9 +14,84 @@ type Provider = {
   createdAt: string;
 };
 
+type Snapshot = {
+  id: string;
+  providerId: string;
+  sourceUrl: string;
+  status: string;
+  httpStatus: number | null;
+  contentType: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
 type ProvidersResponse = {
   data: Provider[];
 };
+
+type SnapshotsResponse = {
+  data: Snapshot[];
+};
+
+function ProviderSnapshots({ providerId }: { providerId: string }) {
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["snapshots", providerId],
+    queryFn: () =>
+      apiFetch<SnapshotsResponse>(`/providers/${providerId}/snapshots`),
+  });
+
+  const runSnapshotMutation = useMutation({
+    mutationFn: () =>
+      apiFetch(`/providers/${providerId}/snapshots/run`, {
+        method: "POST",
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["snapshots", providerId] });
+    },
+  });
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <button
+        type="button"
+        onClick={() => runSnapshotMutation.mutate()}
+        disabled={runSnapshotMutation.isPending}
+      >
+        {runSnapshotMutation.isPending ? "Running snapshot..." : "Run snapshot"}
+      </button>
+
+      {runSnapshotMutation.error instanceof Error && (
+        <p style={{ color: "red" }}>{runSnapshotMutation.error.message}</p>
+      )}
+
+      <div style={{ marginTop: 12 }}>
+        <strong>Snapshot History</strong>
+        {isLoading && <p>Loading snapshots...</p>}
+        <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
+          {data?.data.map((snapshot) => (
+            <li
+              key={snapshot.id}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                padding: 12,
+                marginTop: 8,
+              }}
+            >
+              <div>Status: {snapshot.status}</div>
+              <div>HTTP: {snapshot.httpStatus ?? "-"}</div>
+              <div>Content-Type: {snapshot.contentType ?? "-"}</div>
+              <div>Error: {snapshot.errorMessage ?? "-"}</div>
+              <div>Created: {new Date(snapshot.createdAt).toLocaleString()}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const queryClient = useQueryClient();
@@ -39,21 +114,16 @@ export default function App() {
         authType,
       };
 
-      if (baseUrl.trim()) {
-        payload.baseUrl = baseUrl.trim();
-      }
-
-      if (specUrl.trim()) {
-        payload.specUrl = specUrl.trim();
-      }
+      if (baseUrl.trim()) payload.baseUrl = baseUrl.trim();
+      if (specUrl.trim()) payload.specUrl = specUrl.trim();
 
       return apiFetch("/providers", {
         method: "POST",
         body: JSON.stringify(payload),
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["providers"] });
       setName("");
       setSlug("");
       setBaseUrl("");
@@ -93,7 +163,7 @@ export default function App() {
         </button>
 
         {createMutation.error instanceof Error && (
-          <p style={{ color: "red", marginTop: 8 }}>{createMutation.error.message}</p>
+          <p style={{ color: "red" }}>{createMutation.error.message}</p>
         )}
       </form>
 
@@ -101,6 +171,7 @@ export default function App() {
         <h2>Providers</h2>
         {isLoading && <p>Loading...</p>}
         {error instanceof Error && <p>{error.message}</p>}
+
         <ul style={{ display: "grid", gap: 12, padding: 0, listStyle: "none" }}>
           {data?.data.map((provider) => (
             <li key={provider.id} style={{ border: "1px solid #ddd", padding: 16, borderRadius: 8 }}>
@@ -110,6 +181,8 @@ export default function App() {
               <div>Spec URL: {provider.specUrl ?? "-"}</div>
               <div>Auth: {provider.authType}</div>
               <div>Status: {provider.isActive ? "Active" : "Inactive"}</div>
+
+              <ProviderSnapshots providerId={provider.id} />
             </li>
           ))}
         </ul>
