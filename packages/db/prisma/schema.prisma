@@ -8,29 +8,48 @@ datasource db {
 }
 
 model Provider {
-  id        String     @id @default(cuid())
-  name      String
-  slug      String     @unique
-  baseUrl   String?
-  specUrl   String?
-  authType  String
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  snapshots Snapshot[]
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  baseUrl       String?
+  specUrl       String?
+  authType      String
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  snapshots     Snapshot[]
+  snapshotDiffs SnapshotDiff[]
 }
 
 model Snapshot {
-  id             String   @id @default(cuid())
-  providerId     String
-  provider       Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  sourceUrl      String
-  status         String
-  httpStatus     Int?
-  contentType    String?
-  rawPayload     Json?
-  errorMessage   String?
-  createdAt      DateTime @default(now())
+  id           String         @id @default(cuid())
+  providerId   String
+  provider     Provider       @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  sourceUrl    String
+  status       String
+  httpStatus   Int?
+  contentType  String?
+  rawPayload   Json?
+  errorMessage String?
+  createdAt    DateTime       @default(now())
+  diffsFrom    SnapshotDiff[] @relation("PreviousSnapshot")
+  diffsTo      SnapshotDiff[] @relation("CurrentSnapshot")
 
+  @@index([providerId, createdAt])
+}
+
+model SnapshotDiff {
+  id                 String   @id @default(cuid())
+  providerId         String
+  provider           Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  previousSnapshotId String
+  currentSnapshotId  String
+  previousSnapshot   Snapshot @relation("PreviousSnapshot", fields: [previousSnapshotId], references: [id], onDelete: Cascade)
+  currentSnapshot    Snapshot @relation("CurrentSnapshot", fields: [currentSnapshotId], references: [id], onDelete: Cascade)
+  hasChanges         Boolean
+  summary            Json?
+  createdAt          DateTime @default(now())
+
+  @@unique([previousSnapshotId, currentSnapshotId])
   @@index([providerId, createdAt])
 }
