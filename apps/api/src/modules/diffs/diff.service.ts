@@ -33,8 +33,8 @@ export async function createLatestSnapshotDiff(providerId: string) {
   const addedKeys = currentKeys.filter((key) => !previousKeys.includes(key));
   const removedKeys = previousKeys.filter((key) => !currentKeys.includes(key));
 
-  const previousString = JSON.stringify(previous.rawPayload);
-  const currentString = JSON.stringify(current.rawPayload);
+  const previousString = stableStringify(previous.rawPayload);
+  const currentString = stableStringify(current.rawPayload);
 
   const hasChanges = previousString !== currentString;
 

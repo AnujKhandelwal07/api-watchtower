@@ -38,7 +38,7 @@ export async function handleCreateProvider(req: Request, res: Response) {
   try {
     const provider = await createProvider(parsed.data);
     return res.status(201).json({ data: provider });
-  } catch (error) {
+  } catch {
 
     return res.status(409).json({
       message: "Provider creation failed",

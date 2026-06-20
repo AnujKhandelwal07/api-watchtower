@@ -4,24 +4,18 @@
   "description": "",
   "main": "index.js",
   "private": true,
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",
-    "db:migrate": "pnpm --filter db prisma migrate dev",
-    "db:generate": "pnpm --filter db prisma generate"
+    "db:migrate": "pnpm --filter db exec prisma migrate dev",
+    "db:generate": "pnpm --filter db exec prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.7.0",
-      "onFail": "download"
-    }
-  },
   "type": "module"
 }
