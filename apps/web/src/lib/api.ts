@@ -9,7 +9,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     ...options,
   });
 
-  let responseBody: unknown = null;
+  let responseBody: unknown;
 
   try {
     responseBody = await response.json();
