@@ -1,5 +1,5 @@
-
 import { prisma } from "../../lib/prisma.js";
+import { createAlertForDiff } from "../alerts/alert.service.js";
 
 function getTopLevelKeys(value: unknown): string[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
@@ -7,7 +7,10 @@ function getTopLevelKeys(value: unknown): string[] {
 }
 
 function stableStringify(value: unknown): string {
-  return JSON.stringify(value, Object.keys((value as Record<string, unknown>) || {}).sort());
+  return JSON.stringify(
+    value,
+    Object.keys((value as Record<string, unknown>) || {}).sort(),
+  );
 }
 
 export async function createLatestSnapshotDiff(providerId: string) {
@@ -15,7 +18,6 @@ export async function createLatestSnapshotDiff(providerId: string) {
     where: {
       providerId,
       status: "success",
-      rawPayload: { not: undefined },
     },
     orderBy: { createdAt: "desc" },
     take: 2,
@@ -56,10 +58,7 @@ export async function createLatestSnapshotDiff(providerId: string) {
         currentSnapshotId: current.id,
       },
     },
-    update: {
-      hasChanges,
-      summary,
-    },
+    update: { hasChanges, summary },
     create: {
       providerId,
       previousSnapshotId: previous.id,
@@ -68,6 +67,19 @@ export async function createLatestSnapshotDiff(providerId: string) {
       summary,
     },
   });
+
+  // Fire-and-forget: create alert only when changes detected
+  if (hasChanges) {
+    const added =
+      addedKeys.length > 0 ? ` Added: ${addedKeys.join(", ")}.` : "";
+    const removed =
+      removedKeys.length > 0 ? ` Removed: ${removedKeys.join(", ")}.` : "";
+    const message = `Provider spec changed.${added}${removed}`;
+
+    createAlertForDiff(providerId, diff.id, message).catch((err: unknown) => {
+      console.error("[alert] Failed to create alert for diff", diff.id, err);
+    });
+  }
 
   return diff;
 }

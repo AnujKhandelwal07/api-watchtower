@@ -37,6 +37,17 @@ type Diff = {
   createdAt: string;
 };
 
+type Alert = {
+  id: string;
+  providerId: string;
+  diffId: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  acknowledgedAt: string | null;
+  createdAt: string;
+};
+
 type ProvidersResponse = {
   data: Provider[];
 };
@@ -47,6 +58,10 @@ type SnapshotsResponse = {
 
 type DiffsResponse = {
   data: Diff[];
+};
+
+type AlertsResponse = {
+  data: Alert[];
 };
 
 function ProviderSnapshots({ providerId }: { providerId: string }) {
@@ -128,6 +143,7 @@ function ProviderDiffs({ providerId }: { providerId: string }) {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["diffs", providerId] });
+      await queryClient.invalidateQueries({ queryKey: ["alerts", providerId] });
     },
   });
 
@@ -175,6 +191,93 @@ function ProviderDiffs({ providerId }: { providerId: string }) {
           ))}
         </ul>
       </div>
+    </div>
+  );
+}
+
+function ProviderAlerts({ providerId }: { providerId: string }) {
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isFetching, error } = useQuery({
+    queryKey: ["alerts", providerId],
+    queryFn: () => apiFetch<AlertsResponse>(`/providers/${providerId}/alerts`),
+  });
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: (alertId: string) =>
+      apiFetch(`/alerts/${alertId}/acknowledge`, {
+        method: "PATCH",
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["alerts", providerId] });
+    },
+  });
+
+  const unreadCount = data?.data.filter((a) => !a.isRead).length ?? 0;
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <strong>
+        Alerts
+        {unreadCount > 0 && (
+          <span
+            style={{
+              marginLeft: 8,
+              background: "#e53e3e",
+              color: "#fff",
+              borderRadius: "9999px",
+              padding: "2px 8px",
+              fontSize: 12,
+            }}
+          >
+            {unreadCount} unread
+          </span>
+        )}
+      </strong>
+
+      {isLoading && <p>Loading alerts...</p>}
+      {isFetching && !isLoading && <p>Refreshing alerts...</p>}
+      {error instanceof Error && (
+        <p style={{ color: "red" }}>{error.message}</p>
+      )}
+      {!isLoading && !error && data?.data.length === 0 && <p>No alerts yet.</p>}
+
+      <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
+        {data?.data.map((alert) => (
+          <li
+            key={alert.id}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              padding: 12,
+              marginTop: 8,
+              background: alert.isRead ? "#f9f9f9" : "#fffbea",
+            }}
+          >
+            <div>{alert.message}</div>
+            <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+              {new Date(alert.createdAt).toLocaleString()}
+              {alert.isRead && alert.acknowledgedAt && (
+                <span>
+                  {" "}
+                  · Acknowledged{" "}
+                  {new Date(alert.acknowledgedAt).toLocaleString()}
+                </span>
+              )}
+            </div>
+            {!alert.isRead && (
+              <button
+                type="button"
+                style={{ marginTop: 8 }}
+                disabled={acknowledgeMutation.isPending}
+                onClick={() => acknowledgeMutation.mutate(alert.id)}
+              >
+                Acknowledge
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -292,6 +395,7 @@ export default function App() {
 
               <ProviderSnapshots providerId={provider.id} />
               <ProviderDiffs providerId={provider.id} />
+              <ProviderAlerts providerId={provider.id} />
             </li>
           ))}
         </ul>

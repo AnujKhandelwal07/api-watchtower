@@ -19,6 +19,7 @@ model Provider {
   updatedAt     DateTime       @updatedAt
   snapshots     Snapshot[]
   snapshotDiffs SnapshotDiff[]
+  alerts        Alert[]
 }
 
 model Snapshot {
@@ -49,7 +50,24 @@ model SnapshotDiff {
   hasChanges         Boolean
   summary            Json?
   createdAt          DateTime @default(now())
+  alerts        Alert[]
 
   @@unique([previousSnapshotId, currentSnapshotId])
   @@index([providerId, createdAt])
+}
+
+model Alert {
+  id           String    @id @default(cuid())
+  providerId   String
+  diffId       String
+  provider     Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  diff         SnapshotDiff @relation(fields: [diffId], references: [id], onDelete: Cascade)
+  type         String    @default("CHANGE_DETECTED")
+  message      String
+  isRead       Boolean   @default(false)
+  acknowledgedAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([providerId, createdAt])
+  @@index([isRead])
 }
