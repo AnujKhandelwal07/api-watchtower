@@ -45,6 +45,7 @@ type Alert = {
   message: string;
   isRead: boolean;
   acknowledgedAt: string | null;
+  snsMessageId: string | null;
   createdAt: string;
 };
 
@@ -255,6 +256,13 @@ function ProviderAlerts({ providerId }: { providerId: string }) {
             }}
           >
             <div>{alert.message}</div>
+
+            {alert.snsMessageId && (
+              <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>
+                SNS: {alert.snsMessageId}
+              </div>
+            )}
+            
             <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
               {new Date(alert.createdAt).toLocaleString()}
               {alert.isRead && alert.acknowledgedAt && (
