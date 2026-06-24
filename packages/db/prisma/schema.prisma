@@ -66,6 +66,7 @@ model Alert {
   message      String
   isRead       Boolean   @default(false)
   acknowledgedAt DateTime?
+  snsMessageId   String?
   createdAt    DateTime  @default(now())
 
   @@index([providerId, createdAt])
